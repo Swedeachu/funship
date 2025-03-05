@@ -77,7 +77,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 54a142765179ec24e9c4c63e3774d113, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 3d47113ddb46a784ba50b4732adbf708, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -100,19 +100,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 963af5564a4280046a37b12d4aa27bea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxForwardSpeed: 10
-  forwardAcceleration: 10
-  forwardJerk: 10
-  decelerationMultiplier: 60
-  maxTurnSpeed: 45
-  turnAcceleration: 45
-  turnJerk: 45
-  smallScale: {x: 1, y: 1, z: 1}
-  mediumScale: {x: 2, y: 2, z: 2}
-  largeScale: {x: 4, y: 4, z: 4}
-  smallSpeedMultiplier: 1
-  mediumSpeedMultiplier: 0.5
-  largeSpeedMultiplier: 0.25
+  baseAcceleration: 5
+  jerk: 10
+  decelMultiplier: 2
+  maxSpeed: 5
+  linearFriction: 3
+  baseRotAcceleration: 100
+  rotJerk: 200
+  rotDecelMultiplier: 2
+  maxRotSpeed: 180
+  rotationalFriction: 10
+  scales:
+  - {x: 1, y: 1, z: 1}
+  - {x: 2, y: 2, z: 1}
+  - {x: 4, y: 4, z: 1}
+  speedFactors:
+  - 1
+  - 0.5
+  - 0.25
 --- !u!114 &6074539096863565626
 MonoBehaviour:
   m_ObjectHideFlags: 0
