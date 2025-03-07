@@ -285,7 +285,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5255165529230676726, guid: 3a8b349d18081bc42bb40fd010e343d6, type: 3}
       propertyPath: speedFactors.Array.data[2]
-      value: 0.4
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 5622872768480394486, guid: 3a8b349d18081bc42bb40fd010e343d6, type: 3}
       propertyPath: m_Name

@@ -44,17 +44,25 @@ public class PlayerController : MonoBehaviour
   {
     // Linear movement
     float vertical = Input.GetAxisRaw("Vertical");
+
+    // determine which way to decel or accel towards using jerk
     bool decel = (vertical != 0 && currentSpeed != 0 && Mathf.Sign(currentSpeed) != Mathf.Sign(vertical));
     float targetAccel = vertical * baseAcceleration * speedFactors[sizeIndex] * (decel ? decelMultiplier : 1f);
     currentAcceleration = Mathf.MoveTowards(currentAcceleration, targetAccel, jerk * Time.fixedDeltaTime);
+
+    // apply velocity and acceleration
     currentSpeed += currentAcceleration * Time.fixedDeltaTime;
     currentSpeed = Mathf.Clamp(currentSpeed, -maxSpeed * speedFactors[sizeIndex], maxSpeed * speedFactors[sizeIndex]);
     if (vertical == 0) { currentSpeed = Mathf.MoveTowards(currentSpeed, 0, linearFriction * Time.fixedDeltaTime); }
 
     // Rotational movement 
     float horizontal = -Input.GetAxisRaw("Horizontal");
+
+    // determine whcih way to decel or accel rotation towards using jerk
     bool rotDecel = (horizontal != 0 && currentRotSpeed != 0 && Mathf.Sign(currentRotSpeed) != Mathf.Sign(horizontal));
     float targetRotAccel = horizontal * baseRotAcceleration * speedFactors[sizeIndex] * (rotDecel ? rotDecelMultiplier : 1f);
+
+    // apply velocity and acceleration
     currentRotAcceleration = Mathf.MoveTowards(currentRotAcceleration, targetRotAccel, rotJerk * Time.fixedDeltaTime);
     currentRotSpeed += currentRotAcceleration * Time.fixedDeltaTime;
     currentRotSpeed = Mathf.Clamp(currentRotSpeed, -maxRotSpeed * speedFactors[sizeIndex], maxRotSpeed * speedFactors[sizeIndex]);
