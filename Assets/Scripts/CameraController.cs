@@ -4,42 +4,79 @@ using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
-
   [Header("Camera to Control")]
-  [Tooltip("Reference to the Camera that we want to move.")]
   public Camera mainCamera;
 
-  [Header("Offset Settings")]
-  [Tooltip("How far away the camera should be from the ship.")]
-  public Vector3 cameraOffset = new Vector3(0f, 0f, -10f);
+  [Header("Target Settings")]
+  public Transform target; // The player's ship
 
-  // We'll store the camera's original rotation so we can preserve it (i.e. no rotation changes).
+  [Header("Offset & Follow Settings")]
+  public Vector3 cameraOffset = new Vector3(0f, 0f, -10f);
+  public float followSpeed = 2f; // Adjusts how smoothly the camera follows
+
+  [Header("Sway Settings")]
+  public float maxSwayDistance = 4f; // How far the camera sways from the target
+  public float swaySpeed = 0.5f; // How fast the sway adjusts
+
+  [Header("Zoom Settings")]
+  public float baseMinZoom = 12f;
+  public float maxZoom = 16f;
+  public float zoomSpeed = 2f;
+  public float speedThreshold = 5f;
+
+  private Rigidbody2D targetRb;
   private Quaternion initialCameraRotation;
+  private Vector3 velocity = Vector3.zero; // Used for smooth damp
+  private Vector3 swayOffset = Vector3.zero; // Camera sway effect
 
   void Start()
   {
-    if (mainCamera != null)
-    {
-      // Record the camera's starting rotation
-      initialCameraRotation = mainCamera.transform.rotation;
-    }
-    else
+    if (mainCamera == null)
     {
       Debug.LogWarning("No camera assigned to CameraController.");
+      return;
     }
+
+    if (target != null)
+    {
+      targetRb = target.GetComponent<Rigidbody2D>();
+    }
+
+    initialCameraRotation = mainCamera.transform.rotation;
   }
 
   void LateUpdate()
   {
-    // If we have a camera to control, update its position to follow the ship
-    if (mainCamera != null)
-    {
-      // The new camera position is the ship's position plus the offset
-      Vector3 newPosition = transform.position + cameraOffset;
-      mainCamera.transform.position = newPosition;
+    if (mainCamera == null || target == null) return;
 
-      // Keep the original camera rotation, ignoring the ship's rotation
-      mainCamera.transform.rotation = initialCameraRotation;
+    // Calculate target position with offset
+    Vector3 targetPosition = target.position + cameraOffset;
+
+    // Apply camera sway based on movement direction
+    if (targetRb != null)
+    {
+      Vector3 movementDirection = targetRb.velocity.normalized;
+      swayOffset = Vector3.Lerp(swayOffset, movementDirection * maxSwayDistance, swaySpeed * Time.deltaTime);
+    }
+
+    // Apply smooth follow effect
+    Vector3 finalPosition = targetPosition + swayOffset;
+    mainCamera.transform.position = Vector3.SmoothDamp(mainCamera.transform.position, finalPosition, ref velocity, followSpeed * Time.deltaTime);
+
+    // Keep original camera rotation
+    mainCamera.transform.rotation = initialCameraRotation;
+
+    // Adjust zoom based on speed and ship size
+    if (targetRb != null)
+    {
+      float speed = targetRb.velocity.magnitude;
+
+      // Scale min zoom based on ship size
+      float sizeScaleFactor = 1f + (PlayerController.sizeIndex * 0.5f); // Larger ships zoom out
+      float minZoom = baseMinZoom * sizeScaleFactor;
+
+      float targetZoom = Mathf.Lerp(minZoom, maxZoom, speed / speedThreshold);
+      mainCamera.orthographicSize = Mathf.Lerp(mainCamera.orthographicSize, targetZoom, zoomSpeed * Time.deltaTime);
     }
   }
 

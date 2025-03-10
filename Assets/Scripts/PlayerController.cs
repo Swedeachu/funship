@@ -19,7 +19,8 @@ public class PlayerController : MonoBehaviour
   [Header("Gunship Sizes")]
   public Vector3[] scales = { new Vector3(1, 1, 1), new Vector3(2, 2, 1), new Vector3(4, 4, 1) };
   public float[] speedFactors = { 1f, 0.5f, 0.25f };
-  private int sizeIndex = 0;
+
+  public static int sizeIndex = 0; // public static so it can easily be used by other scripts so they can adjust to the scale
 
   private Rigidbody2D rb;
   private float currentAcceleration;
