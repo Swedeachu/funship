@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 660407403401115791}
   - component: {fileID: 813372568014260582}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Gun
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -98,9 +98,9 @@ GameObject:
   - component: {fileID: 4885586863571729170}
   - component: {fileID: 6668176240121812082}
   - component: {fileID: 6302114016276886489}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: PlayerShip
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -216,7 +216,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mainCamera: {fileID: 0}
+  target: {fileID: 0}
   cameraOffset: {x: 0, y: 0, z: -10}
+  followSpeed: 5
+  maxSwayDistance: 1.5
+  swaySpeed: 3
+  baseMinZoom: 12
+  maxZoom: 16
+  zoomSpeed: 2
+  speedThreshold: 5
 --- !u!58 &6668176240121812082
 CircleCollider2D:
   m_ObjectHideFlags: 0

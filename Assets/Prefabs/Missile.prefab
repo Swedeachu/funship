@@ -13,9 +13,10 @@ GameObject:
   - component: {fileID: 1675408060236495714}
   - component: {fileID: -6454337383976886767}
   - component: {fileID: -6502654943430707934}
+  - component: {fileID: -6572499265653764292}
   m_Layer: 0
   m_Name: Missile
-  m_TagString: Untagged
+  m_TagString: Projectile
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -139,7 +140,46 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8fe949ee741333f45987fc5762500a15, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  acceleration: 5
-  maxSpeed: 20
-  turnSpeed: 90
-  lifespan: 5
+  jerk: 40
+  acceleration: 15
+  maxSpeed: 120
+  turnSpeed: 360
+  lifespan: 12
+  bananaTurnMultiplier: 3
+  slideTime: 1
+  decelerationFactor: 2
+--- !u!58 &-6572499265653764292
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7998657837146355703}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 192
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 0, y: 0}
+  serializedVersion: 2
+  m_Radius: 0.5

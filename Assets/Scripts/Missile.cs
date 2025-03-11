@@ -5,18 +5,23 @@ using UnityEngine;
 public class Missile : MonoBehaviour
 {
   [Header("Missile Physics Settings")]
-  public float jerk = 40f;          // Rate at which acceleration increases
-  public float acceleration = 15f;  // Base acceleration value
-  public float maxSpeed = 60f;      // Maximum speed
-  public float turnSpeed = 360f;    // Base turning speed in degrees per second
-  public float lifespan = 6f;       // How long the missile exists before self-destructing
+  public float jerk = 40f;          // Rate at which acceleration increases during homing
+  public float acceleration = 15f;  // Base acceleration (used during homing phase)
+  public float maxSpeed = 120f;      // Maximum speed the missile can reach
+  public float turnSpeed = 360f;    // Base turning speed in degrees per second during homing
+  public float lifespan = 12f;       // How long the missile exists before self-destructing
 
-  // Multiplier to aggressively correct when overshooting
+  // Multiplier to forcefully steer the missile back if it overshoots
   public float bananaTurnMultiplier = 3f;
+
+  [Header("Sliding Phase Settings")]
+  public float slideTime = 1f;         // Duration (in seconds) of the initial sliding phase
+  public float decelerationFactor = 2f; // How quickly the missile decelerates during sliding
 
   private Rigidbody2D rb;
   private Transform target;
-  private float currentAcceleration = 0f; // Current acceleration ramping up using jerk
+  private float currentAcceleration = 0f; // Ramp-up acceleration used during homing phase
+  private float slideTimer = 0f;          // Timer for tracking sliding phase
 
   void Start()
   {
@@ -27,45 +32,49 @@ public class Missile : MonoBehaviour
 
   void FixedUpdate()
   {
-    // Continuously look for a target so that if one is lost, we may pick a new one.
+    // --- Sliding Phase ---
+    if (slideTimer < slideTime)
+    {
+      slideTimer += Time.fixedDeltaTime;
+      // Gradually slow the missile down so it "slides" to a stop
+      rb.velocity = Vector2.Lerp(rb.velocity, Vector2.zero, decelerationFactor * Time.fixedDeltaTime);
+      return; // Skip homing logic until slide phase is over
+    }
+
     FindNearestTarget();
 
+    // --- Homing Phase ---
     if (target != null)
     {
-      // Calculate the direction and distance to the target
+      // Calculate the vector from the missile to the target
       Vector2 toTarget = (Vector2)(target.position - transform.position);
       float distance = toTarget.magnitude;
       Vector2 direction = toTarget.normalized;
 
-      // Determine the target angle (adjusted by -90 degrees due to sprite orientation)
+      // Determine the target angle (adjusted by -90° for sprite alignment)
       float targetAngle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
-
-      // Get the current rotation from the Rigidbody2D (in degrees)
       float currentAngle = rb.rotation;
-      // Calculate the smallest angle difference between the current and target angles
       float angleDiff = Mathf.DeltaAngle(currentAngle, targetAngle);
 
-      // If the missile overshoots (angle difference > 90 degrees), apply a stronger turning multiplier
+      // If the missile overshoots (angle difference > 90°), boost the turning rate
       float dynamicMultiplier = (Mathf.Abs(angleDiff) > 90f) ? bananaTurnMultiplier : 1f;
-
-      // Also adjust turning speed based on distance (closer means more aggressive turning)
+      // Increase turn speed as the missile gets closer to the target
       float dynamicTurnSpeed = turnSpeed * dynamicMultiplier * (1 + (1f / Mathf.Max(distance, 0.1f)));
 
-      // Smoothly adjust the missile's rotation towards the target angle using the dynamic turn speed
+      // Smoothly rotate toward the target angle using physics-based rotation
       float newAngle = Mathf.MoveTowardsAngle(currentAngle, targetAngle, dynamicTurnSpeed * Time.fixedDeltaTime);
       rb.MoveRotation(newAngle);
     }
 
-    // Increase the missile's acceleration gradually using jerk (for a smoother physics-based feel)
+    // Increase homing acceleration gradually using jerk
     currentAcceleration = Mathf.MoveTowards(currentAcceleration, acceleration, jerk * Time.fixedDeltaTime);
 
-    // Apply force in the missile's forward (up) direction using the current acceleration
+    // Apply force in the missile's forward (up) direction for rocket-powered homing
     rb.AddForce(transform.up * currentAcceleration, ForceMode2D.Force);
-    // Clamp the missile's velocity so it doesn't exceed the maximum speed
     rb.velocity = Vector2.ClampMagnitude(rb.velocity, maxSpeed);
   }
 
-  // Finds the nearest target by comparing distances to all GameObjects tagged "Target"
+  // Finds the nearest target among all GameObjects tagged "Target"
   private void FindNearestTarget()
   {
     GameObject[] targets = GameObject.FindGameObjectsWithTag("Target");
@@ -87,4 +96,5 @@ public class Missile : MonoBehaviour
       target = closestTarget;
     }
   }
+
 }

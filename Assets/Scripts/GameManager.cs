@@ -33,7 +33,7 @@ public class GameManager : MonoBehaviour
     // Generate a random position within the play bounds relative to the origin
     float randomX = Random.Range(origin.x - playBounds.x / 2, origin.x + playBounds.x / 2);
     float randomY = Random.Range(origin.y - playBounds.y / 2, origin.y + playBounds.y / 2);
-    Vector2 spawnPosition = new Vector2(randomX, randomY);
+    Vector3 spawnPosition = new Vector3(randomX, randomY, -1);
 
     Instantiate(targetPrefab, spawnPosition, Quaternion.identity);
   }
