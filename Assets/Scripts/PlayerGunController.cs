@@ -6,7 +6,7 @@ public class PlayerGunController : MonoBehaviour
 {
 
   public GameObject bulletPrefab;
-  public GameObject missilePrefab; // Missile prefab for homing missiles
+  public GameObject missilePrefab;
   public Transform firePoint;
   public float buildUpTime = 3f;
 
@@ -15,21 +15,32 @@ public class PlayerGunController : MonoBehaviour
   public float baseMaxFireRate = 0.1f;
   public float baseBulletSize = 1f;
 
-  public int missileCount = 5; // Number of missiles in the barrage
-  public float missileSpreadAngle = 45f; // Spread angle for the missiles
+  public int missileCount = 5;
+  public float missileSpreadAngle = 45f;
 
   private float timeDown = 0f;
   private float nextFireTime = 0f;
 
-  // Private variable to alternate shot offset (left/right)
   private bool nextShotLeft = true;
   public float baseBulletOffsetAngle = 2f;
 
+  private Coroutine cooldownRoutine = null;
+  private bool isCoolingDown = false;
+
+  // Kick/recoil settings
+  [Header("Kick Settings")]
+  public float maxKickAngle = 6f; // maximum added inaccuracy from recoil at full ramp
+
   void Update()
   {
-    // Hold down to shoot
     if (Input.GetKey(KeyCode.Space))
     {
+      if (isCoolingDown)
+      {
+        StopCoroutine(cooldownRoutine);
+        isCoolingDown = false;
+      }
+
       timeDown += Time.deltaTime;
 
       float sizeFactor = 1f + (PlayerController.sizeIndex * 1f);
@@ -40,48 +51,74 @@ public class PlayerGunController : MonoBehaviour
 
       if (Time.time >= nextFireTime)
       {
-        Shoot(sizeFactor);
+        Shoot(sizeFactor, fireRate, minFireRate);
         nextFireTime = Time.time + fireRate;
       }
     }
-    else
+    else if (!isCoolingDown && timeDown > 0f)
     {
-      timeDown = 0f;
-      nextFireTime = Time.time;
+      cooldownRoutine = StartCoroutine(SlowlyStopShooting());
     }
 
-    // Missile Barrage on ENTER Key
     if (Input.GetKeyDown(KeyCode.Return))
     {
       LaunchMissileBarrage();
     }
   }
 
-  private void Shoot(float sizeFactor)
+  private IEnumerator SlowlyStopShooting()
   {
-    sizeFactor++; // Increase sizeFactor as per original logic
+    isCoolingDown = true;
 
-    // Calculate base offset angle scaled by ship size
+    float decayTime = 1.5f;
+    float initialTimeDown = timeDown;
+    float elapsed = 0f;
+
+    while (timeDown > 0f)
+    {
+      elapsed += Time.deltaTime;
+      float decayRatio = 1f - (elapsed / decayTime);
+      timeDown = Mathf.Max(0f, initialTimeDown * decayRatio);
+
+      float sizeFactor = 1f + (PlayerController.sizeIndex * 1f);
+      float minFireRate = baseMinFireRate / sizeFactor;
+      float maxFireRate = baseMaxFireRate / sizeFactor;
+      float fireRate = Mathf.Lerp(minFireRate, maxFireRate, timeDown / buildUpTime);
+
+      if (Time.time >= nextFireTime)
+      {
+        Shoot(sizeFactor, fireRate, minFireRate);
+        nextFireTime = Time.time + fireRate;
+      }
+
+      yield return null;
+    }
+
+    timeDown = 0f;
+    isCoolingDown = false;
+  }
+
+  private void Shoot(float sizeFactor, float fireRate, float minFireRate)
+  {
+    sizeFactor++;
+
     float maxOffset = baseBulletOffsetAngle * (PlayerController.sizeIndex + 1);
-
-    // Generate a random offset within a range, ensuring the spread isn't too wild
-    float randomOffset = Random.Range(0.5f * maxOffset, maxOffset); // Random spread variation
-
-    // Alternate left and right each shot, applying random variation
+    float randomOffset = Random.Range(0.5f * maxOffset, maxOffset);
     float angleOffset = nextShotLeft ? randomOffset : -randomOffset;
-    nextShotLeft = !nextShotLeft; // Flip for next shot
+    nextShotLeft = !nextShotLeft;
 
-    // Create a new rotation with the offset applied
+    // --- KICK INFLUENCE ---
+    float kickRatio = Mathf.InverseLerp(minFireRate, baseMaxFireRate, fireRate);
+    float kickAngle = Random.Range(-maxKickAngle, maxKickAngle) * (1f - kickRatio); // more random at high fire rate
+    angleOffset += kickAngle;
+
     Quaternion offsetRotation = firePoint.rotation * Quaternion.Euler(0f, 0f, angleOffset);
-
-    // Determine the spawn position (unchanged in this case)
     Vector3 spawnPosition = firePoint.position + (firePoint.up * 0.5f);
     GameObject bullet = Instantiate(bulletPrefab, spawnPosition, offsetRotation);
 
     Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
     if (rb != null)
     {
-      // Apply velocity using the new offset rotation
       rb.velocity = offsetRotation * Vector2.up * (baseBulletSpeed * sizeFactor);
     }
 
@@ -92,18 +129,18 @@ public class PlayerGunController : MonoBehaviour
   {
     int mCount = missileCount * (PlayerController.sizeIndex + 1);
     float startAngle = -missileSpreadAngle * (mCount - 1) / 2f;
-    float sizeFactor = 1f + (PlayerController.sizeIndex * 0.5f); // Bigger ships = faster missiles
+    float sizeFactor = 1f + (PlayerController.sizeIndex * 0.5f);
 
     for (int i = 0; i < mCount; i++)
     {
       Quaternion spreadRotation = Quaternion.Euler(0, 0, startAngle + (i * missileSpreadAngle) + Random.Range(-5f, 5f));
-      Vector3 spawnPosition = firePoint.position + (firePoint.up * Random.Range(0.3f, 1.0f)); // Random offset for swarm effect
+      Vector3 spawnPosition = firePoint.position + (firePoint.up * Random.Range(0.3f, 1.0f));
       GameObject missile = Instantiate(missilePrefab, spawnPosition, firePoint.rotation * spreadRotation);
 
       Rigidbody2D rb = missile.GetComponent<Rigidbody2D>();
       if (rb != null)
       {
-        rb.velocity = missile.transform.up * (5f * sizeFactor); // Launch speed; missiles will decelerate and then home
+        rb.velocity = missile.transform.up * (5f * sizeFactor);
       }
     }
   }
