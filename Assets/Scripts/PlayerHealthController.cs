@@ -16,6 +16,8 @@ public class PlayerHealthController : MonoBehaviour
   public float smokeStartThreshold = 95f;
   public float maxSmokeRate = 30f;
 
+  public static bool BULLET_TIME = false;
+
   void Start()
   {
     currentHealth = maxHealth;
@@ -25,6 +27,11 @@ public class PlayerHealthController : MonoBehaviour
     {
       smokeSystem.Stop();
     }
+  }
+
+  void Update()
+  {
+    BULLET_TIME = currentHealth <= 25.0f;
   }
 
   void FixedUpdate()

@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class PlayerGunController : MonoBehaviour
 {
-
   public GameObject bulletPrefab;
   public GameObject missilePrefab;
   public Transform firePoint;
@@ -27,9 +26,8 @@ public class PlayerGunController : MonoBehaviour
   private Coroutine cooldownRoutine = null;
   private bool isCoolingDown = false;
 
-  // Kick/recoil settings
   [Header("Kick Settings")]
-  public float maxKickAngle = 6f; // maximum added inaccuracy from recoil at full ramp
+  public float maxKickAngle = 6f;
 
   void Update()
   {
@@ -41,7 +39,7 @@ public class PlayerGunController : MonoBehaviour
         isCoolingDown = false;
       }
 
-      timeDown += Time.deltaTime;
+      timeDown += Time.unscaledDeltaTime;
 
       float sizeFactor = 1f + (PlayerController.sizeIndex * 1f);
       float minFireRate = baseMinFireRate / sizeFactor;
@@ -49,10 +47,10 @@ public class PlayerGunController : MonoBehaviour
 
       float fireRate = Mathf.Lerp(minFireRate, maxFireRate, timeDown / buildUpTime);
 
-      if (Time.time >= nextFireTime)
+      if (Time.unscaledTime >= nextFireTime)
       {
         Shoot(sizeFactor, fireRate, minFireRate);
-        nextFireTime = Time.time + fireRate;
+        nextFireTime = Time.unscaledTime + fireRate;
       }
     }
     else if (!isCoolingDown && timeDown > 0f)
@@ -76,7 +74,7 @@ public class PlayerGunController : MonoBehaviour
 
     while (timeDown > 0f)
     {
-      elapsed += Time.deltaTime;
+      elapsed += Time.unscaledDeltaTime;
       float decayRatio = 1f - (elapsed / decayTime);
       timeDown = Mathf.Max(0f, initialTimeDown * decayRatio);
 
@@ -85,10 +83,10 @@ public class PlayerGunController : MonoBehaviour
       float maxFireRate = baseMaxFireRate / sizeFactor;
       float fireRate = Mathf.Lerp(minFireRate, maxFireRate, timeDown / buildUpTime);
 
-      if (Time.time >= nextFireTime)
+      if (Time.unscaledTime >= nextFireTime)
       {
         Shoot(sizeFactor, fireRate, minFireRate);
-        nextFireTime = Time.time + fireRate;
+        nextFireTime = Time.unscaledTime + fireRate;
       }
 
       yield return null;
@@ -107,9 +105,8 @@ public class PlayerGunController : MonoBehaviour
     float angleOffset = nextShotLeft ? randomOffset : -randomOffset;
     nextShotLeft = !nextShotLeft;
 
-    // --- KICK INFLUENCE ---
     float kickRatio = Mathf.InverseLerp(minFireRate, baseMaxFireRate, fireRate);
-    float kickAngle = Random.Range(-maxKickAngle, maxKickAngle) * (1f - kickRatio); // more random at high fire rate
+    float kickAngle = Random.Range(-maxKickAngle, maxKickAngle) * (1f - kickRatio);
     angleOffset += kickAngle;
 
     Quaternion offsetRotation = firePoint.rotation * Quaternion.Euler(0f, 0f, angleOffset);
