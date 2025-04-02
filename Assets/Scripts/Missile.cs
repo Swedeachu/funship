@@ -65,11 +65,20 @@ public class Missile : MonoBehaviour
 
   private void FindNearestTarget()
   {
-    GameObject[] targets = GameObject.FindGameObjectsWithTag("Target");
+    // Find all objects tagged "Target" and "Enemy"
+    GameObject[] targetObjects = GameObject.FindGameObjectsWithTag("Target");
+    GameObject[] enemyObjects = GameObject.FindGameObjectsWithTag("Enemy");
+
+    // Combine them into a single list
+    List<GameObject> allTargets = new List<GameObject>();
+    allTargets.AddRange(targetObjects);
+    allTargets.AddRange(enemyObjects);
+
     float minDistance = Mathf.Infinity;
     Transform closestTarget = null;
 
-    foreach (GameObject potentialTarget in targets)
+    // Loop through each potential target and determine the closest one
+    foreach (GameObject potentialTarget in allTargets)
     {
       float distance = Vector2.Distance(transform.position, potentialTarget.transform.position);
       if (distance < minDistance)
@@ -79,6 +88,7 @@ public class Missile : MonoBehaviour
       }
     }
 
+    // If a target was found, assign it
     if (closestTarget != null)
     {
       target = closestTarget;

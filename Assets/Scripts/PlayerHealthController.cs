@@ -54,7 +54,7 @@ public class PlayerHealthController : MonoBehaviour
     }
   }
 
-  private void TakeDamage(float amount)
+  public void TakeDamage(float amount)
   {
     currentHealth = Mathf.Max(0f, currentHealth - amount);
     currentHealth = Mathf.Round(currentHealth * 100f) / 100f;
