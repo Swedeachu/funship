@@ -31,6 +31,8 @@ public class PlayerGunController : MonoBehaviour
 
   void Update()
   {
+    if (PlayerHealthController.DEAD) return;
+
     if (Input.GetKey(KeyCode.Space))
     {
       if (isCoolingDown)
@@ -98,6 +100,8 @@ public class PlayerGunController : MonoBehaviour
 
   private void Shoot(float sizeFactor, float fireRate, float minFireRate)
   {
+    if (PlayerHealthController.DEAD) return;
+
     sizeFactor++;
 
     float maxOffset = baseBulletOffsetAngle * (PlayerController.sizeIndex + 1);

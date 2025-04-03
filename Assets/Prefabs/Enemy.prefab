@@ -171,3 +171,4 @@ MonoBehaviour:
   detectionRange: 10
   fireCooldown: 1
   bulletPrefab: {fileID: 1532653291001200991, guid: bec2a05ec6938c74793efc28daa7d17e, type: 3}
+  explosionPrefab: {fileID: 326748848425089189, guid: 4e9e1b9308a43d04db6d548b1263d765, type: 3}

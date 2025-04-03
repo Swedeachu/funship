@@ -17,6 +17,7 @@ public class EnemyShipController : MonoBehaviour
   public float detectionRange = 50f;
   public float fireCooldown = 0.25f;
   public GameObject bulletPrefab;
+  public GameObject explosionPrefab;
 
   private Rigidbody2D rb;
   private Transform player;
@@ -28,6 +29,8 @@ public class EnemyShipController : MonoBehaviour
   private Vector2 orbitCenter = Vector2.zero;
   private float orbitThreshold = 1.5f; // how close we must get to 0,0 before orbiting
 
+  private bool dead = false;
+
   void Start()
   {
     rb = GetComponent<Rigidbody2D>();
@@ -37,12 +40,12 @@ public class EnemyShipController : MonoBehaviour
 
   void FixedUpdate()
   {
-    if (player == null) return;
+    if (player == null || dead) return;
 
     Vector2 toPlayer = (player.position - transform.position).normalized;
     float distanceToPlayer = Vector2.Distance(transform.position, player.position);
 
-    if (distanceToPlayer <= detectionRange)
+    if (distanceToPlayer <= detectionRange && !PlayerHealthController.DEAD)
     {
       roamingToCenter = false;
 
@@ -106,7 +109,7 @@ public class EnemyShipController : MonoBehaviour
 
   void FireBullet(Vector2 shootDir)
   {
-    if (bulletPrefab == null) return;
+    if (bulletPrefab == null || dead) return;
 
     // Calculate angle in degrees from direction vector
     float angle = Mathf.Atan2(shootDir.y, shootDir.x) * Mathf.Rad2Deg;
@@ -127,6 +130,8 @@ public class EnemyShipController : MonoBehaviour
 
   void OnCollisionEnter2D(Collision2D col)
   {
+    if (dead) return;
+
     if (col.gameObject.CompareTag("Projectile"))
     {
       Destroy(col.gameObject);
@@ -134,7 +139,22 @@ public class EnemyShipController : MonoBehaviour
 
       if (health <= 0f)
       {
-        Destroy(gameObject); // TODO: explosion effect, screen shake, billboard message
+        dead = true;
+
+        // Spawn explosion effect at this position with the ship's rotation
+        if (explosionPrefab != null)
+        {
+          GameObject explosion = Instantiate(explosionPrefab, transform.position, transform.rotation);
+          Destroy(explosion, 2f); // Destroy explosion after 2 seconds
+        }
+
+        // Trigger screen shake
+        Camera.main.GetComponent<ScreenShake>()?.Shake(1f, 0.3f, 0.3f);
+
+        BillboardService.Instance?.ShowText("BOSS DEFEATED");
+
+        // Destroy the enemy ship
+        Destroy(gameObject);
       }
     }
   }

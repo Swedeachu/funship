@@ -8,11 +8,11 @@ public class PlayerController : MonoBehaviour
   private float maxSpeed = 10f;
   private float linearFriction = 3f;
 
-  private float baseRotAcceleration = 140f; 
-  private float rotJerk = 500f;             
-  private float rotDecelMultiplier = 2.5f;  
-  private float maxRotSpeed = 220f;         
-  private float rotationalFriction = 25f;  
+  private float baseRotAcceleration = 140f;
+  private float rotJerk = 500f;
+  private float rotDecelMultiplier = 2.5f;
+  private float maxRotSpeed = 220f;
+  private float rotationalFriction = 25f;
 
   private Vector3[] scales = {
     new Vector3(1, 1, 1),
@@ -41,11 +41,13 @@ public class PlayerController : MonoBehaviour
 
   void Update()
   {
+    if (PlayerHealthController.DEAD) return;
+
     if (Input.GetKeyDown(KeyCode.Alpha1)) { sizeIndex = 0; ApplySize(); }
     if (Input.GetKeyDown(KeyCode.Alpha2)) { sizeIndex = 1; ApplySize(); }
     if (Input.GetKeyDown(KeyCode.Alpha3)) { sizeIndex = 2; ApplySize(); }
 
-    if (PlayerHealthController.BULLET_TIME)
+    if (PlayerHealthController.BULLET_TIME && !PlayerHealthController.DEAD)
     {
       Time.timeScale = 0.3f;
       Time.fixedDeltaTime = 0.02f * Time.timeScale;
@@ -59,6 +61,13 @@ public class PlayerController : MonoBehaviour
 
   void FixedUpdate()
   {
+    if (PlayerHealthController.DEAD)
+    {
+      rb.velocity = Vector2.zero;
+      rb.angularVelocity = 0f;
+      return;
+    }
+
     float timeScaleComp = (Time.timeScale > 0f) ? 1f / Time.timeScale : 1f;
 
     float healthRatio = (healthController != null)
@@ -98,7 +107,7 @@ public class PlayerController : MonoBehaviour
     rb.MoveRotation(rb.rotation + currentRotSpeed * Time.fixedDeltaTime * timeScaleComp);
   }
 
-  void ApplySize()
+  public void ApplySize()
   {
     transform.localScale = scales[sizeIndex];
     currentSpeed = 0f;
@@ -119,6 +128,8 @@ public class PlayerController : MonoBehaviour
 
   void OnCollisionEnter2D(Collision2D collision)
   {
+    if (PlayerHealthController.DEAD) return;
+
     if (collision.gameObject.CompareTag("Barrier"))
     {
       // Get the first contact point
