@@ -290,6 +290,9 @@ MonoBehaviour:
   smokeSystem: {fileID: -3993877255050933975}
   smokeStartThreshold: 95
   maxSmokeRate: 30
+  bulletPrefab: {fileID: 7998657837146355703, guid: 2d38ea966f6f7e747acc89b600d9f619, type: 3}
+  explosionBulletCount: 24
+  explosionBulletSpeed: 10
   explosionPrefab: {fileID: 326748848425089189, guid: 4e9e1b9308a43d04db6d548b1263d765, type: 3}
 --- !u!198 &-3993877255050933975
 ParticleSystem:

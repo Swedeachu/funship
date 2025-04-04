@@ -49,7 +49,7 @@ public class PlayerController : MonoBehaviour
 
     if (PlayerHealthController.BULLET_TIME && !PlayerHealthController.DEAD)
     {
-      Time.timeScale = 0.3f;
+      Time.timeScale = 0.15f; // was 0.3
       Time.fixedDeltaTime = 0.02f * Time.timeScale;
     }
     else

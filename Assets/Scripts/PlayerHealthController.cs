@@ -17,6 +17,11 @@ public class PlayerHealthController : MonoBehaviour
   public float smokeStartThreshold = 95f;
   public float maxSmokeRate = 30f;
 
+  [Header("Explosion Bullet Settings")]
+  public GameObject bulletPrefab; 
+  public int explosionBulletCount = 24;
+  public float explosionBulletSpeed = 10f;
+
   public GameObject explosionPrefab;
 
   public static bool BULLET_TIME = false;
@@ -76,6 +81,8 @@ public class PlayerHealthController : MonoBehaviour
 
       BillboardService.Instance?.ShowText("YOU DIED", 2f);
 
+      ExplosionProjectiles();
+
       // Spawn explosion
       if (explosionPrefab != null)
       {
@@ -84,13 +91,43 @@ public class PlayerHealthController : MonoBehaviour
       }
 
       // Trigger screen shake
-      Camera.main.GetComponent<ScreenShake>()?.Shake(1f, 0.3f, 0.3f);
+      Camera.main.GetComponent<ScreenShake>()?.Shake(2f, 0.8f, 0.8f);
 
       // Hide ship
       SetShipVisible(false);
 
       // Start respawn routine
       StartCoroutine(RespawnAfterDelay(5f));
+    }
+  }
+
+  private void ExplosionProjectiles()
+  {
+    if (bulletPrefab == null) return;
+
+    float angleStep = 360f / explosionBulletCount;
+
+    for (int i = 0; i < explosionBulletCount; i++)
+    {
+      float angle = i * angleStep;
+      float rad = angle * Mathf.Deg2Rad;
+      Vector2 shootDir = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)).normalized;
+
+      Quaternion rotation = Quaternion.Euler(0, 0, angle - 90f);
+      Vector3 spawnPos = transform.position;
+
+      GameObject bullet = Instantiate(bulletPrefab, spawnPos, rotation);
+
+      // Set scale like PlayerGunController (for visual size match)
+      float sizeFactor = 1f + (PlayerController.sizeIndex * 1f);
+      bullet.transform.localScale = Vector3.one * (1f * sizeFactor / 4f);
+
+      // Apply velocity
+      Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
+      if (rb != null)
+      {
+        rb.velocity = shootDir * (explosionBulletSpeed * sizeFactor);
+      }
     }
   }
 
