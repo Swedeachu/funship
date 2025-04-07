@@ -38,6 +38,7 @@ public class EnemyShipController : MonoBehaviour
     rb = GetComponent<Rigidbody2D>();
     player = GameObject.Find("PlayerShip")?.transform;
     zigzagOffset = Random.Range(0f, Mathf.PI * 2f);
+    TelemetryManager.Instance.MarkBossSpawned();
   }
 
   void FixedUpdate()
@@ -202,6 +203,8 @@ public class EnemyShipController : MonoBehaviour
 
         // Destroy the enemy ship
         Destroy(gameObject);
+
+        TelemetryManager.Instance.MarkBossDefeated();
       }
     }
   }

@@ -29,9 +29,24 @@ public class PlayerGunController : MonoBehaviour
   [Header("Kick Settings")]
   public float maxKickAngle = 6f;
 
+  // Timer for missile barrage when AI is controlling
+  private float missileTimer = 0f;
+
+  void Start()
+  {
+    // Initialize missile timer with a random interval between 5 and 10 seconds.
+    missileTimer = Random.Range(5f, 10f);
+  }
+
   void Update()
   {
     if (PlayerHealthController.DEAD) return;
+
+    if (PlayerController.aiControlling)
+    {
+      aiControls();
+      return;
+    }
 
     if (Input.GetKey(KeyCode.Space))
     {
@@ -63,6 +78,35 @@ public class PlayerGunController : MonoBehaviour
     if (Input.GetKeyDown(KeyCode.Return))
     {
       LaunchMissileBarrage();
+    }
+  }
+
+  /// <summary>
+  /// AI controls for the gun: automatically fires bullets by simulating a held fire button,
+  /// and launches missile barrages on a randomized timer.
+  /// </summary>
+  private void aiControls()
+  {
+    // Simulate holding down the fire button by incrementing the buildup timer.
+    timeDown += Time.unscaledDeltaTime;
+
+    float sizeFactor = 1f + (PlayerController.sizeIndex * 1f);
+    float minFireRate = baseMinFireRate / sizeFactor;
+    float maxFireRate = baseMaxFireRate / sizeFactor;
+    float fireRate = Mathf.Lerp(minFireRate, maxFireRate, timeDown / buildUpTime);
+
+    if (Time.unscaledTime >= nextFireTime)
+    {
+      Shoot(sizeFactor, fireRate, minFireRate);
+      nextFireTime = Time.unscaledTime + fireRate;
+    }
+
+    // Handle missile barrage: decrement missile timer and launch when it expires.
+    missileTimer -= Time.unscaledDeltaTime;
+    if (missileTimer <= 0f)
+    {
+      LaunchMissileBarrage();
+      missileTimer = Random.Range(5f, 10f);
     }
   }
 
@@ -102,6 +146,8 @@ public class PlayerGunController : MonoBehaviour
   {
     if (PlayerHealthController.DEAD) return;
 
+    TelemetryManager.Instance.AddShotsFired(1);
+
     sizeFactor++;
 
     float maxOffset = baseBulletOffsetAngle * (PlayerController.sizeIndex + 1);
@@ -131,6 +177,8 @@ public class PlayerGunController : MonoBehaviour
     int mCount = missileCount * (PlayerController.sizeIndex + 1);
     float startAngle = -missileSpreadAngle * (mCount - 1) / 2f;
     float sizeFactor = 1f + (PlayerController.sizeIndex * 0.5f);
+
+    TelemetryManager.Instance.AddMissilesFired(mCount);
 
     for (int i = 0; i < mCount; i++)
     {

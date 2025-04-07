@@ -82,6 +82,8 @@ public class PlayerHealthController : MonoBehaviour
     }
     iFrames = 60;
 
+    TelemetryManager.Instance.AddDamageTaken(amount);
+
     currentHealth = Mathf.Max(0f, currentHealth - amount);
     currentHealth = Mathf.Round(currentHealth * 100f) / 100f;
     UpdateHealthText();
@@ -91,6 +93,9 @@ public class PlayerHealthController : MonoBehaviour
       DEAD = true;
 
       BillboardService.Instance?.ShowText("YOU DIED", 2f);
+
+      TelemetryManager.Instance.AddDestruction();
+      TelemetryManager.Instance.IncrementDeaths();
 
       ExplosionProjectiles();
 

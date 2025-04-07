@@ -30,6 +30,9 @@ public class PlayerController : MonoBehaviour
   private float currentRotAcceleration;
   private float currentRotSpeed;
 
+  // so other components can access it easily
+  public static bool aiControlling = false;
+
   private PlayerHealthController healthController;
 
   void Start()
@@ -41,6 +44,13 @@ public class PlayerController : MonoBehaviour
 
   void Update()
   {
+    // TODO: apparently this is supposed to be "A" but that conflicts with WASD controls so I added the shift
+    if (Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(KeyCode.A))
+    {
+      Debug.Log("Automode activated");
+      aiControlling = !aiControlling;
+    }
+
     if (PlayerHealthController.DEAD) return;
 
     if (Input.GetKeyDown(KeyCode.Alpha1)) { sizeIndex = 0; ApplySize(); }
@@ -65,6 +75,12 @@ public class PlayerController : MonoBehaviour
     {
       rb.velocity = Vector2.zero;
       rb.angularVelocity = 0f;
+      return;
+    }
+
+    if (aiControlling)
+    {
+      aiControls();
       return;
     }
 
@@ -105,6 +121,128 @@ public class PlayerController : MonoBehaviour
 
     rb.velocity = transform.up * currentSpeed * timeScaleComp;
     rb.MoveRotation(rb.rotation + currentRotSpeed * Time.fixedDeltaTime * timeScaleComp);
+  }
+
+  /// <summary>
+  /// AI controls for movement: the ship purposefully aims at the nearest enemy and weaves slightly around it.
+  /// It computes a desired facing angle toward the target, applies a reduced sine-based weave for evasion,
+  /// and adjusts forward thrust based on distance for a more skilled steering behavior.
+  /// </summary>
+  private void aiControls()
+  {
+    // Find the nearest enemy ship (tagged "Enemy")
+    Transform target = GetNearestEnemy();
+    float simulatedVertical = 1f; // forward thrust input (1 = full throttle)
+    float simulatedHorizontal = 0f; // rotation input
+
+    if (target != null)
+    {
+      // Calculate the vector from this ship to the target
+      Vector2 toTarget = (Vector2)target.position - (Vector2)transform.position;
+      float distanceToTarget = toTarget.magnitude;
+
+      // Compute the desired facing angle (in degrees)
+      // Subtract 90 because transform.up points 90 from the x-axis in Unity
+      float desiredAngle = Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg - 90f;
+      float currentAngle = transform.eulerAngles.z;
+      // Determine the shortest angle difference between current and desired angles
+      float angleDiff = Mathf.DeltaAngle(currentAngle, desiredAngle);
+
+      // More aggressive turning: use a smaller divisor for higher sensitivity
+      float turnInput = Mathf.Clamp(angleDiff / 20f, -1f, 1f);
+
+      // Reduced weaving offset for precision aiming when a target is present
+      float weaveFrequency = 3f;
+      float weaveAmplitude = 0.5f;
+      float weaveOffset = 0.2f * Mathf.Sin(Time.time * weaveFrequency) * weaveAmplitude;
+
+      // Combine the turning input with the reduced weaving offset
+      simulatedHorizontal = turnInput + weaveOffset;
+
+      // Adjust forward thrust based on distance:
+      // - Too close (< 2f): reduce throttle to avoid overshooting.
+      // - Too far (> 8f): full throttle to close the gap.
+      // - Otherwise, use moderate throttle.
+      if (distanceToTarget < 2f)
+      {
+        simulatedVertical = 0.5f;
+      }
+      else if (distanceToTarget > 8f)
+      {
+        simulatedVertical = 1f;
+      }
+      else
+      {
+        simulatedVertical = 0.8f;
+      }
+    }
+    else
+    {
+      // No target found: default to a gentle weaving pattern and moderate forward speed.
+      simulatedVertical = 0.8f;
+      simulatedHorizontal = Mathf.Sin(Time.time * 2f) * 0.5f;
+    }
+
+    // Process the simulated inputs similarly to the player-controlled movement:
+    float timeScaleComp = (Time.timeScale > 0f) ? 1f / Time.timeScale : 1f;
+    float healthRatio = (healthController != null)
+        ? Mathf.Clamp01(healthController.currentHealth / healthController.maxHealth)
+        : 1f;
+
+    // --- Vertical (forward/backward) processing ---
+    bool decel = (simulatedVertical != 0 && currentSpeed != 0 && Mathf.Sign(currentSpeed) != Mathf.Sign(simulatedVertical));
+    float targetAccel = simulatedVertical * baseAcceleration * speedFactors[sizeIndex] * (decel ? decelMultiplier : 1f);
+    targetAccel *= Mathf.Lerp(0.3f, 1f, healthRatio);
+
+    currentAcceleration = Mathf.MoveTowards(currentAcceleration, targetAccel, jerk * Time.fixedDeltaTime);
+    currentSpeed += currentAcceleration * Time.fixedDeltaTime;
+    currentSpeed = Mathf.Clamp(currentSpeed, -maxSpeed * speedFactors[sizeIndex], maxSpeed * speedFactors[sizeIndex]);
+
+    if (simulatedVertical == 0)
+    {
+      currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, linearFriction * Time.fixedDeltaTime);
+    }
+
+    // --- Horizontal (rotation) processing ---
+    bool rotDecel = (simulatedHorizontal != 0 && currentRotSpeed != 0 && Mathf.Sign(currentRotSpeed) != Mathf.Sign(simulatedHorizontal));
+    float targetRotAccel = simulatedHorizontal * baseRotAcceleration * speedFactors[sizeIndex] * (rotDecel ? rotDecelMultiplier : 1f);
+    targetRotAccel *= Mathf.Lerp(0.3f, 1f, healthRatio);
+
+    currentRotAcceleration = Mathf.MoveTowards(currentRotAcceleration, targetRotAccel, rotJerk * Time.fixedDeltaTime);
+    currentRotSpeed += currentRotAcceleration * Time.fixedDeltaTime;
+    currentRotSpeed = Mathf.Clamp(currentRotSpeed, -maxRotSpeed * speedFactors[sizeIndex], maxRotSpeed * speedFactors[sizeIndex]);
+
+    if (simulatedHorizontal == 0)
+    {
+      currentRotSpeed = Mathf.MoveTowards(currentRotSpeed, 0f, rotationalFriction * Time.fixedDeltaTime);
+    }
+
+    // --- Apply the computed movement and rotation ---
+    rb.velocity = transform.up * currentSpeed * timeScaleComp;
+    rb.MoveRotation(rb.rotation + currentRotSpeed * Time.fixedDeltaTime * timeScaleComp);
+  }
+
+  /// <summary>
+  /// Finds and returns the Transform of the nearest enemy (tagged as "Enemy").
+  /// Returns null if no enemy is found.
+  /// </summary>
+  private Transform GetNearestEnemy()
+  {
+    GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
+    Transform nearest = null;
+    float bestDistance = Mathf.Infinity;
+
+    foreach (GameObject enemy in enemies)
+    {
+      float dist = Vector2.Distance(transform.position, enemy.transform.position);
+      if (dist < bestDistance)
+      {
+        bestDistance = dist;
+        nearest = enemy.transform;
+      }
+    }
+
+    return nearest;
   }
 
   public void ApplySize()
@@ -151,5 +289,9 @@ public class PlayerController : MonoBehaviour
       currentRotAcceleration = 0f;
     }
   }
+
+  public float GetCurrentAcceleration() { return currentAcceleration; }
+  public float GetCurrentRotAcceleration() { return currentRotAcceleration; }
+  public float GetCurrentRotSpeed() { return currentRotSpeed; }
 
 }
