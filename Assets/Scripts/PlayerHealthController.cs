@@ -29,6 +29,8 @@ public class PlayerHealthController : MonoBehaviour
 
   private Renderer[] renderers; // For toggling visibility
 
+  private int iFrames = 0;
+
   void Start()
   {
     currentHealth = maxHealth;
@@ -49,6 +51,8 @@ public class PlayerHealthController : MonoBehaviour
 
   void FixedUpdate()
   {
+    iFrames--;
+
     if (!DEAD && currentHealth < maxHealth)
     {
       currentHealth += 0.01f;
@@ -70,6 +74,13 @@ public class PlayerHealthController : MonoBehaviour
   public void TakeDamage(float amount)
   {
     if (DEAD) return;
+
+    // we have hit cool down of 60 ticks
+    if (iFrames > 0)
+    {
+      return;
+    }
+    iFrames = 60;
 
     currentHealth = Mathf.Max(0f, currentHealth - amount);
     currentHealth = Mathf.Round(currentHealth * 100f) / 100f;

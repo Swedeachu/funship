@@ -56,7 +56,7 @@ public class EnemyBulletController : MonoBehaviour
     PlayerHealthController playerHealth = collision.gameObject.GetComponent<PlayerHealthController>();
     if (playerHealth != null)
     {
-      playerHealth.TakeDamage(5f);
+      playerHealth.TakeDamage(Random.Range(3, 5));
       Destroy(gameObject);
     }
   }

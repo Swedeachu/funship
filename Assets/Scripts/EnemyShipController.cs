@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class EnemyShipController : MonoBehaviour
 {
@@ -206,7 +206,7 @@ public class EnemyShipController : MonoBehaviour
     }
   }
 
-  // Shoots out regular bullets in a 360° circle around the enemy
+  // Shoots out regular bullets in a 360ï¿½ circle around the enemy
   private void ExplosionProjectiles()
   {
     if (bulletPrefab == null) return;
