@@ -44,8 +44,7 @@ public class PlayerController : MonoBehaviour
 
   void Update()
   {
-    // TODO: apparently this is supposed to be "A" but that conflicts with WASD controls so I added the shift
-    if (Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(KeyCode.A))
+    if (Input.GetKeyDown(KeyCode.T))
     {
       Debug.Log("Automode activated");
       aiControlling = !aiControlling;

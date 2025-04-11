@@ -5,27 +5,27 @@ using UnityEngine;
 
 public class TelemetryManager : MonoBehaviour
 {
-
   private Dictionary<string, int> valuePairs = new Dictionary<string, int>();
 
-  // 1) Singleton reference
   private static TelemetryManager instance;
   public static TelemetryManager Instance => instance;
 
-  // 2) For periodic logging of ship stats (once per second).
   private float nextLogTime = 0f;
   private float logInterval = 1f;
 
-  // 3) Track old accelerations so we can compute "jerk" (the change in acceleration).
   private float oldLinAccel = 0f;
   private float oldRotAccel = 0f;
 
-  // 4) Track boss timing.
   private float bossStartTime = 0f;
+  private float bossDefeatTime = -1f;
+
+  private List<string> periodicRows = new List<string>();
+  private int shotsFiredCount = 0;
+  private int missilesFiredCount = 0;
+  private int damageTakenCount = 0;
 
   private void Awake()
   {
-    // Set up a singleton so we can easily access TelemetryManager.Instance
     if (instance != null && instance != this)
     {
       Destroy(this.gameObject);
@@ -33,6 +33,8 @@ public class TelemetryManager : MonoBehaviour
     }
     instance = this;
     DontDestroyOnLoad(this.gameObject);
+
+    periodicRows.Add("Time,ShipVelocity,ShipAcceleration,ShipLinearJerk,ShipRotSpeed,ShipRotAcceleration,ShipRotJerk,ShipSizeIndex,ShotsFired,MissilesFired,DamageTaken,ShipDestructions,Deaths,BossDefeatTime");
   }
 
   private void Update()
@@ -50,49 +52,51 @@ public class TelemetryManager : MonoBehaviour
     }
   }
 
-  /// <summary>
-  /// Logs velocity, acceleration, jerk, rotation speed, rotation acceleration, rotation jerk,
-  /// and ship size. Called once per second while AI is controlling.
-  /// </summary>
   private void LogPeriodicData()
   {
-    // Find the PlayerController in the scene
     PlayerController player = FindObjectOfType<PlayerController>();
     if (player == null) return;
 
-    // 1) Linear velocity
-    float velocity = player.GetComponent<Rigidbody2D>().velocity.magnitude;
-    AddFloat("ShipVelocity", velocity);
+    Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
 
-    // 2) Linear acceleration
-    float currentLinAccel = player.GetCurrentAcceleration();  
-    AddFloat("ShipAcceleration", currentLinAccel);
-
-    // 3) Linear jerk = (Δacceleration / Δtime)
+    float timeStamp = Time.time;
+    float velocity = rb.velocity.magnitude;
+    float currentLinAccel = player.GetCurrentAcceleration();
     float linJerk = (currentLinAccel - oldLinAccel) / Time.fixedDeltaTime;
-    AddFloat("ShipLinearJerk", linJerk);
     oldLinAccel = currentLinAccel;
-
-    // 4) Rotational speed
-    float rotSpeed = player.GetCurrentRotSpeed(); 
-    AddFloat("ShipRotSpeed", rotSpeed);
-
-    // 5) Rotational acceleration
-    float currentRotAccel = player.GetCurrentRotAcceleration();  
-    AddFloat("ShipRotAcceleration", currentRotAccel);
-
-    // 6) Rotational jerk
+    float rotSpeed = player.GetCurrentRotSpeed();
+    float currentRotAccel = player.GetCurrentRotAcceleration();
     float rotJerk = (currentRotAccel - oldRotAccel) / Time.fixedDeltaTime;
-    AddFloat("ShipRotJerk", rotJerk);
     oldRotAccel = currentRotAccel;
+    int sizeIndex = PlayerController.sizeIndex;
 
-    // 7) Current ship size (index)
-    Add("ShipSizeIndex", PlayerController.sizeIndex);
+    int destructions = valuePairs.ContainsKey("ShipDestructions") ? valuePairs["ShipDestructions"] : 0;
+    int deaths = valuePairs.ContainsKey("Deaths") ? valuePairs["Deaths"] : 0;
+    int bossTime = bossDefeatTime >= 0f ? Mathf.RoundToInt(bossDefeatTime) : -1;
+
+    string row = string.Format("{0:F2},{1:F2},{2:F2},{3:F2},{4:F2},{5:F2},{6:F2},{7},{8},{9},{10},{11},{12},{13}",
+        timeStamp,
+        velocity,
+        currentLinAccel,
+        linJerk,
+        rotSpeed,
+        currentRotAccel,
+        rotJerk,
+        sizeIndex,
+        shotsFiredCount,
+        missilesFiredCount,
+        damageTakenCount,
+        destructions,
+        deaths,
+        bossTime);
+
+    periodicRows.Add(row);
+
+    shotsFiredCount = 0;
+    missilesFiredCount = 0;
+    damageTakenCount = 0;
   }
 
-  /// <summary>
-  /// Adds a float value (converted to int) to the telemetry if AI is controlling.
-  /// </summary>
   public void AddFloat(string key, float value)
   {
     if (!PlayerController.aiControlling) return;
@@ -100,94 +104,59 @@ public class TelemetryManager : MonoBehaviour
     Add(key, intVal);
   }
 
-  /// <summary>
-  /// Logs how much damage the ship has taken.
-  /// </summary>
   public void AddDamageTaken(float damage)
   {
-    // Convert to int internally for simple CSV logging
-    AddFloat("DamageTaken", damage);
+    damageTakenCount += Mathf.RoundToInt(damage);
   }
 
-  /// <summary>
-  /// Logs that the player ship was destroyed.
-  /// </summary>
   public void AddDestruction()
   {
     Add("ShipDestructions");
   }
 
-  /// <summary>
-  /// Logs each player death.
-  /// </summary>
   public void IncrementDeaths()
   {
     Add("Deaths");
   }
 
-  /// <summary>
-  /// Logs that a shot (or multiple shots) were fired.
-  /// </summary>
   public void AddShotsFired(int count = 1)
   {
-    Add("ShotsFired", count);
+    shotsFiredCount += count;
   }
 
-  /// <summary>
-  /// Logs that a shot (or multiple shots) were fired.
-  /// </summary>
   public void AddMissilesFired(int count = 1)
   {
-    Add("MissilesFired", count);
+    missilesFiredCount += count;
   }
 
-  /// <summary>
-  /// Called when a boss spawns or begins. Tracks start time.
-  /// </summary>
   public void MarkBossSpawned()
   {
     bossStartTime = Time.time;
     Add("BossSpawned");
   }
 
-  /// <summary>
-  /// Called when a boss is defeated; logs time to defeat and how many deaths occurred.
-  /// </summary>
   public void MarkBossDefeated()
   {
-    float timeToDefeat = Time.time - bossStartTime;
-    AddFloat("BossDefeatTime", timeToDefeat);
+    bossDefeatTime = Time.time - bossStartTime;
+    AddFloat("BossDefeatTime", bossDefeatTime);
 
-    // If we have a "Deaths" counter, also record that at boss defeat.
-    if (valuePairs.ContainsKey("Deaths"))
-    {
-      Add("DeathsBeforeBossDefeat", valuePairs["Deaths"]);
-    }
-    else
-    {
-      Add("DeathsBeforeBossDefeat", 0);
-    }
-
+    int deaths = valuePairs.ContainsKey("Deaths") ? valuePairs["Deaths"] : 0;
+    Add("DeathsBeforeBossDefeat", deaths);
     Add("BossDefeated");
   }
 
   public void Add(string key, int value = 1)
   {
-    // if (!PlayerController.aiControlling) return;
-
     if (valuePairs.ContainsKey(key))
     {
       valuePairs[key] += value;
-      // Debug.Log(key + ": " + valuePairs[key]);
     }
     else
     {
       valuePairs.Add(key, value);
-      // Debug.Log(key + ": " + value);
     }
   }
 
-  // writes everything to app data in a simple csv
   private void Save()
   {
     string timestamp = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
@@ -196,10 +165,9 @@ public class TelemetryManager : MonoBehaviour
 
     using (StreamWriter writer = new StreamWriter(filePath))
     {
-      writer.WriteLine("Key,Value"); // CSV Header
-      foreach (var pair in valuePairs)
+      foreach (string row in periodicRows)
       {
-        writer.WriteLine($"{pair.Key},{pair.Value}");
+        writer.WriteLine(row);
       }
     }
 
@@ -208,7 +176,10 @@ public class TelemetryManager : MonoBehaviour
 
   private void Clear()
   {
+    periodicRows.Clear();
+    periodicRows.Add("Time,ShipVelocity,ShipAcceleration,ShipLinearJerk,ShipRotSpeed,ShipRotAcceleration,ShipRotJerk,ShipSizeIndex,ShotsFired,MissilesFired,DamageTaken,ShipDestructions,Deaths,BossDefeatTime");
     valuePairs.Clear();
+    bossDefeatTime = -1f;
   }
 
 }
